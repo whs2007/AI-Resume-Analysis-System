@@ -29,3 +29,7 @@ Thumbs.db
 # Redis
 dump.rdb
 backend/test_resume.pdf
+backend/deps/
+backend/linux_all/
+backend/all_deps.txt
+backend/test*.pdf
