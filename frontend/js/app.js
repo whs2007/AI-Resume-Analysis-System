@@ -4,7 +4,7 @@
 
 // ===== 配置 =====
 // 后端 API 地址（部署时修改为实际地址）
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = 'https://resume-analyzer-rxgnefwkfs.cn-hangzhou.fcapp.run/api/v1';
 
 // ===== DOM 元素 =====
 const uploadArea = document.getElementById('upload-area');
