@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import MatchRequest, MatchResponse, ErrorResponse, ResumeInfo, BasicInfo
-from app.services.cache import cache_service
+import app.services.cache as cache_mod
 from app.services.matcher import match_resume_with_job
 from app.config import settings
 
@@ -24,13 +24,14 @@ router = APIRouter(prefix="/api/v1/resume", tags=["匹配评分"])
 )
 async def match_resume(resume_id: str, body: MatchRequest):
     # 1. 从缓存获取简历
-    if not cache_service or not cache_service.available:
+    svc = cache_mod.cache_service
+    if not svc or not svc.available:
         raise HTTPException(
             status_code=404,
             detail="缓存服务未启用，请先上传简历。",
         )
 
-    cached = await cache_service.get_resume(resume_id)
+    cached = await svc.get_resume(resume_id)
     if not cached:
         raise HTTPException(
             status_code=404,
@@ -53,8 +54,8 @@ async def match_resume(resume_id: str, body: MatchRequest):
     # 3. 检查匹配缓存
     jd_hash = hashlib.md5(body.job_description.encode()).hexdigest()
 
-    if cache_service.available:
-        cached_match = await cache_service.get_match(resume_id, jd_hash)
+    if svc.available:
+        cached_match = await svc.get_match(resume_id, jd_hash)
         if cached_match:
             logger.info(f"命中匹配缓存: {resume_id}:{jd_hash}")
             return cached_match
@@ -71,7 +72,7 @@ async def match_resume(resume_id: str, body: MatchRequest):
         raise HTTPException(status_code=500, detail=f"匹配评分失败: {str(e)}")
 
     # 5. 写入匹配缓存
-    if cache_service.available:
-        await cache_service.set_match(resume_id, jd_hash, result.model_dump())
+    if svc.available:
+        await svc.set_match(resume_id, jd_hash, result.model_dump())
 
     return result

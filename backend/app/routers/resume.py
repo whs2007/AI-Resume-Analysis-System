@@ -10,7 +10,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.models.schemas import ResumeUploadResponse, ErrorResponse
 from app.services.ai_extractor import extract_resume_info
-from app.services.cache import cache_service
+import app.services.cache as cache_mod
 from app.services.pdf_parser import parse_pdf, validate_pdf, compute_file_hash
 from app.config import settings
 
@@ -43,8 +43,9 @@ async def upload_resume(file: UploadFile = File(..., description="PDF 简历文�
     file_hash = compute_file_hash(file_content)
 
     # 4. 检查缓存
-    if cache_service and cache_service.available:
-        cached = await cache_service.get_resume(file_hash)
+    svc = cache_mod.cache_service
+    if svc and svc.available:
+        cached = await svc.get_resume(file_hash)
         if cached:
             logger.info(f"命中缓存: {file_hash}")
             return cached
@@ -74,8 +75,8 @@ async def upload_resume(file: UploadFile = File(..., description="PDF 简历文�
     )
 
     # 8. 写入缓存
-    if cache_service and cache_service.available:
-        await cache_service.set_resume(file_hash, response.model_dump())
+    if svc and svc.available:
+        await svc.set_resume(file_hash, response.model_dump())
 
     return response
 
@@ -88,13 +89,14 @@ async def upload_resume(file: UploadFile = File(..., description="PDF 简历文�
     description="通过简历 ID 查询之前已解析的简历信息（从缓存中获取）。",
 )
 async def get_resume(resume_id: str):
-    if not cache_service or not cache_service.available:
+    svc = cache_mod.cache_service
+    if not svc or not svc.available:
         raise HTTPException(
             status_code=404,
             detail="缓存服务未启用，无法查询历史简历。请重新上传。",
         )
 
-    cached = await cache_service.get_resume(resume_id)
+    cached = await svc.get_resume(resume_id)
     if not cached:
         raise HTTPException(status_code=404, detail="未找到该简历，可能已过期。请重新上传。")
 
